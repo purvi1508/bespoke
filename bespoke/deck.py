@@ -82,14 +82,17 @@ class Deck:
         self,
         target_language: Language,
         native_language: Language,
+        card_index: CardIndex,
     ) -> None:
         self._target_language = target_language
         self._native_language = native_language
-        self._card_index = CardIndex.load(target_language, native_language)
+        self._card_index = card_index
         self._ratings: dict[str, list[Rating]] = {}
         self._card_id_uses: dict[str, list[CardUsage]] = {}
         self._difficulty = Difficulty.A1
         self._modes = list(Mode)
+        self._assume_known = None
+        self._start_index = 0
         self._full_vocabulary = target_language.full_vocabulary()
         self._difficulty_map = {}
         for difficulty in Difficulty:
@@ -104,16 +107,18 @@ class Deck:
             if (touched + TOUCH_MARGIN) / (i + TOUCH_MARGIN) < MINIMUM_TOUCH_RATIO:
                 has_reached_threshold = True
             history = self._ratings.get(unit)
+            is_touched = i < self._start_index
+            if is_touched:
+                touched += 1
             if history is None or _is_untouched(history):
                 urgency_states[unit] = UrgencyState(
-                    is_touched=False,
+                    is_touched=is_touched,
                     needs_introduction=False,
                     is_target=not has_reached_threshold,
                     urgency=0.0,
                     mode=self._modes[0],
                 )
                 continue
-            touched += 1
             highest_urgency, mode = max(
                 (compute_urgency(history, m, current_time), m) for m in self._modes
             )
@@ -236,6 +241,19 @@ class Deck:
     def set_modes(self, modes: list[Mode]) -> None:
         self._modes = modes
 
+    def set_assume_known(self, difficulty: Difficulty | None) -> None:
+        self._assume_known = difficulty
+        self._start_index = 0
+        if difficulty is not None:
+            for d in Difficulty:
+                self._start_index += len(self._target_language.vocabulary(d))
+                if d == difficulty:
+                    break
+        if self._start_index >= len(self._full_vocabulary):
+            print("Cannot set minimum difficulty.")
+            self._assume_known = None
+            self._start_index = 0
+
     def log_feedback(self, modes: list[Mode]) -> None:
         self._modes = modes
 
@@ -269,6 +287,8 @@ class Deck:
             "difficulty": str(self._difficulty),
             "modes": [str(m) for m in self._modes],
         }
+        if self._assume_known is not None:
+            data["assume_known"] = str(self._assume_known)
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(data, f)
 
@@ -276,10 +296,10 @@ class Deck:
     def load(cls, filename: Path | str) -> Self:
         with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
-        deck = cls(
-            LANGUAGES[data["target_language"]],
-            LANGUAGES[data["native_language"]],
-        )
+        target_language = LANGUAGES[data["target_language"]]
+        native_language = LANGUAGES[data["native_language"]]
+        card_index = CardIndex.load(target_language, native_language)
+        deck = cls(target_language, native_language, card_index)
         for key, ratings_data in data["ratings"].items():
             ratings = list(Rating.model_validate(r) for r in ratings_data)
             deck._ratings[key] = ratings
@@ -288,4 +308,7 @@ class Deck:
             deck._card_id_uses[key] = usages
         deck._difficulty = Difficulty(data["difficulty"])
         deck._modes = [Mode(m) for m in data["modes"]]
+        assume_known = data.get("assume_known")
+        if assume_known is not None:
+            deck.set_assume_known(Difficulty(assume_known))
         return deck

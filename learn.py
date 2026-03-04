@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 import sys
 
+from bespoke import CardIndex
 from bespoke import Deck
 from bespoke import Difficulty
 from bespoke import Mode
@@ -250,11 +251,17 @@ def open_deck() -> tuple[Deck, str]:
         type=str,
         choices=list(difficulties),
         required=True,
-        help="A language that you know.",
+        help="Your estimated level in that language.",
     )
     parser.add_argument("--use_read_mode", action="store_true", help="Enable read mode")
     parser.add_argument(
         "--use_write_mode", action="store_true", help="Enable write mode"
+    )
+    parser.add_argument(
+        "--assume_known",
+        type=str,
+        choices=list(difficulties),
+        help="Words of this level (inclusive) are assumed known until failed.",
     )
     args = parser.parse_args()
 
@@ -270,12 +277,14 @@ def open_deck() -> tuple[Deck, str]:
     deck_filename = f"deck_{target.code_name}.json"
     if not os.path.isfile(deck_filename):
         print("Creating a new deck...")
-        deck = Deck(target, native)
+        card_index = CardIndex(target, native)
+        deck = Deck(target, native, card_index)
         deck.save(deck_filename)
     else:
         deck = Deck.load(deck_filename)
     deck.set_difficulty(difficulty)
     deck.set_modes(modes)
+    deck.set_assume_known(args.assume_known)
 
     return deck, deck_filename
 

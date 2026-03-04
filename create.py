@@ -28,12 +28,12 @@ async def create(
     cards_per_unit: int,
     cards_per_call: int,
 ) -> None:
-    deck_builder = DeckBuilder(target, native)
+    card_index = CardIndex.load(target, native)
+    deck_builder = DeckBuilder(target, card_index)
     await deck_builder.create_cards(
         cards_per_unit=cards_per_unit,
         cards_per_call=cards_per_call,
     )
-    card_index = CardIndex.load(target, native)
     await card_index.check()
 
 

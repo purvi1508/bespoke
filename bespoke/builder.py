@@ -205,10 +205,10 @@ class DeckBuilder:
     def __init__(
         self,
         target_language: Language,
-        native_language: Language,
+        card_index: CardIndex,
     ) -> None:
         self._language = target_language
-        self._card_index = CardIndex.load(target_language, native_language)
+        self._card_index = card_index
         self._full_vocabulary = self._language.full_vocabulary()
         self._duplicates = set()
         self._start_time = None
