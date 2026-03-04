@@ -20,6 +20,7 @@ import asyncio
 from bespoke import CardIndex
 from bespoke import DeckBuilder
 from bespoke import languages
+from bespoke import llm
 
 
 async def create(
@@ -29,7 +30,8 @@ async def create(
     cards_per_call: int,
 ) -> None:
     card_index = CardIndex.load(target, native)
-    deck_builder = DeckBuilder(target, card_index)
+    llm_client = llm.get_llm_client()
+    deck_builder = DeckBuilder(target, card_index, llm_client)
     await deck_builder.create_cards(
         cards_per_unit=cards_per_unit,
         cards_per_call=cards_per_call,

@@ -13,12 +13,11 @@
 # limitations under the License.
 
 import unittest
-from unittest.mock import patch
 
 from bespoke import Difficulty
-from bespoke import Language
 from bespoke import builder
 from bespoke import languages
+from tests import fakes
 
 
 class TestUnitTagsBuilder(unittest.TestCase):
@@ -71,22 +70,13 @@ class TestUnitProducer(unittest.TestCase):
         self.assertTrue(unit_producer.done())
 
 
-async def mock_create_sentences(
-    language: Language,
-    difficulty: Difficulty,
-    grammar: str,
-    units: list[str],
-) -> list[str]:
-    return units
-
-
 class TestSentenceProducer(unittest.IsolatedAsyncioTestCase):
-    @patch("bespoke.builder.llm.create_sentences", side_effect=mock_create_sentences)
-    async def test_basic_create(self, mock_llm):
+    async def test_basic_create(self):
         cards_per_call = 8
-        language = languages.LANGUAGES["japanese"]
+        language = fakes.fake_language()
+        llm_client = fakes.FakeLlmClient()
         sentence_producer = builder.SentenceProducer(
-            language, cards_per_unit=1, cards_per_call=cards_per_call
+            language, llm_client, cards_per_unit=1, cards_per_call=cards_per_call
         )
         self.assertFalse(sentence_producer.done())
         builders, grammar = await sentence_producer.create()
@@ -94,12 +84,12 @@ class TestSentenceProducer(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(grammar)
         self.assertFalse(sentence_producer.done())
 
-    @patch("bespoke.builder.llm.create_sentences", side_effect=mock_create_sentences)
-    async def test_double_create(self, mock_llm):
+    async def test_double_create(self):
         cards_per_call = 1
-        language = languages.LANGUAGES["japanese"]
+        language = fakes.fake_language()
+        llm_client = fakes.FakeLlmClient()
         sentence_producer = builder.SentenceProducer(
-            language, cards_per_unit=1, cards_per_call=cards_per_call
+            language, llm_client, cards_per_unit=1, cards_per_call=cards_per_call
         )
         builders, grammar1 = await sentence_producer.create()
         builder1 = builders[0]
@@ -107,6 +97,31 @@ class TestSentenceProducer(unittest.IsolatedAsyncioTestCase):
         builder2 = builders[0]
         self.assertNotEqual(builder1.sentence, builder2.sentence)
         self.assertNotEqual(grammar1, grammar2)
+
+
+class TestDeckBuilder(unittest.IsolatedAsyncioTestCase):
+    async def test_creation(self) -> None:
+        language = fakes.fake_language()
+        card_index = fakes.FakeCardIndex(language)
+        llm_client = fakes.FakeLlmClient()
+        deck_builder = builder.DeckBuilder(language, card_index, llm_client)
+        vocabulary_size = len(language.full_vocabulary())
+        index_size = len(await card_index.all_cards())
+        self.assertEqual(index_size, vocabulary_size)
+
+        await deck_builder.create_cards(
+            cards_per_unit=1,
+            cards_per_call=8,
+        )
+        index_size = len(await card_index.all_cards())
+        self.assertEqual(index_size, vocabulary_size)
+
+        await deck_builder.create_cards(
+            cards_per_unit=2,
+            cards_per_call=8,
+        )
+        index_size = len(await card_index.all_cards())
+        self.assertGreaterEqual(index_size, vocabulary_size * 2)
 
 
 if __name__ == "__main__":

@@ -140,12 +140,13 @@ async def _write_ogg(audio: np.ndarray, filename: str, bitrate="16k") -> None:
 
 
 async def _write_audio_file(
+    llm_client: llm.LlmClient,
     *,
     directory: Path,
     sentence: str,
     slowly: bool,
 ) -> str:
-    audio = await llm.speak(sentence, slowly=slowly)
+    audio = await llm_client.speak(sentence, slowly=slowly)
     sentence_hash = hashlib.sha256(sentence.encode("utf-8")).hexdigest()
     if slowly:
         suffix = "_slow"
@@ -255,28 +256,32 @@ class CardIndex:
     @llm.standard_retry
     async def create_card(
         self,
+        llm_client: llm.LlmClient,
         sentence: str,
         unit_tags: UnitTags,
         notes: list[str] = [],
     ) -> Card:
         id = hashlib.sha256(sentence.encode("utf-8")).hexdigest()
-        native_sentence = await llm.translate(sentence, self._native_language)
+        native_sentence = await llm_client.translate(sentence, self._native_language)
         audio_filename = await _write_audio_file(
+            llm_client,
             directory=self._card_directory,
             sentence=sentence,
             slowly=False,
         )
         slow_audio_filename = await _write_audio_file(
+            llm_client,
             directory=self._card_directory,
             sentence=sentence,
             slowly=True,
         )
         native_audio_filename = await _write_audio_file(
+            llm_client,
             directory=self._card_directory,
             sentence=native_sentence,
             slowly=False,
         )
-        phonetic = await llm.to_phonetic(sentence, self._target_language)
+        phonetic = await llm_client.to_phonetic(sentence, self._target_language)
         units = list(set(unit_tags.values()))
         card = Card(
             id=id,

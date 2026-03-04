@@ -148,11 +148,13 @@ class SentenceProducer:
     def __init__(
         self,
         language: Language,
+        llm_client: llm.LlmClient,
         *,
         cards_per_unit: int,
         cards_per_call: int,
     ) -> None:
         self._language = language
+        self._llm_client = llm_client
         self._cards_per_call = cards_per_call
         self._unit_producer = UnitProducer(language, cards_per_unit)
         self._grammar_pools = {}
@@ -166,7 +168,7 @@ class SentenceProducer:
     async def create(self) -> tuple[list[UnitTagsBuilder], str]:
         units, difficulty = self._unit_producer.draw(self._cards_per_call)
         grammar = self._sample_grammar(difficulty)
-        sentences = await llm.create_sentences(
+        sentences = await self._llm_client.create_sentences(
             language=self._language,
             difficulty=difficulty,
             grammar=grammar,
@@ -206,9 +208,11 @@ class DeckBuilder:
         self,
         target_language: Language,
         card_index: CardIndex,
+        llm_client: llm.LlmClient,
     ) -> None:
         self._language = target_language
         self._card_index = card_index
+        self._llm_client = llm_client
         self._full_vocabulary = self._language.full_vocabulary()
         self._duplicates = set()
         self._start_time = None
@@ -222,7 +226,10 @@ class DeckBuilder:
     ) -> None:
         self._duplicates = set()
         sentence_producer = SentenceProducer(
-            self._language, cards_per_unit=cards_per_unit, cards_per_call=cards_per_call
+            self._language,
+            self._llm_client,
+            cards_per_unit=cards_per_unit,
+            cards_per_call=cards_per_call,
         )
         for card in await self._card_index.all_cards():
             self._duplicates.add(card.sentence)
@@ -259,7 +266,7 @@ class DeckBuilder:
                 if unit in builder.sentence and unit not in builder.hint:
                     builder.hint.append(unit)
             while not builder.done():
-                new_tag_list = await llm.tag_sentence(
+                new_tag_list = await self._llm_client.tag_sentence(
                     sentence=builder.sentence,
                     language=self._language,
                     hint=builder.hint,
@@ -269,7 +276,7 @@ class DeckBuilder:
                 print(f"Discarding untagged sentence: '{builder.sentence}'")
                 return
             card = await self._card_index.create_card(
-                builder.sentence, builder.unit_tags, notes=[grammar]
+                self._llm_client, builder.sentence, builder.unit_tags, notes=[grammar]
             )
             sentence_producer.register_card(card)
             self._created_count += 1
