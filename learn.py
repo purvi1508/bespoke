@@ -46,7 +46,7 @@ class RatingWebApp:
     def __init__(self, deck: Deck, deck_filename: str) -> None:
         self._deck = deck
         self._deck_filename = deck_filename
-        self._ratings = {}
+        self._ratings: dict[str, int] = {}
 
         self.main_container = ui.column().classes(
             "w-full max-w-2xl mx-auto items-center gap-4 p-4"
@@ -79,10 +79,10 @@ class RatingWebApp:
             else:
                 ui.icon("volume_off", color="grey").tooltip(f"Missing file: {filename}")
 
-    def _create_color_cycling_button(self, word: str, unit: str) -> None:
+    def _create_color_cycling_button(self, word: str, unit: str) -> ui.button:
         initial_rating = 0
         self._ratings[unit] = initial_rating
-        btn = ui.button(word, on_click=lambda: cycle(btn))
+        btn = ui.button(word, on_click=lambda e: cycle(e.sender))
         btn.props(f"color={COLOR_MAP[initial_rating]} push")
 
         def cycle(b):

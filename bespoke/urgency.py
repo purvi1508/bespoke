@@ -89,8 +89,8 @@ def needs_introduction(history: list[Rating], modes: list[Mode]) -> Mode | None:
     if not history:
         return modes[0]
     # Perfect start detection
-    greens = defaultdict(int)
-    first_score = defaultdict(int)
+    greens: dict[Mode, int] = defaultdict(int)
+    first_score: dict[Mode, int] = defaultdict(int)
     last_time = history[0].time - 2.0 * BLOCK_INTERVAL
     for rating in history:
         if rating.score == 3:

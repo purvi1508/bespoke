@@ -91,7 +91,7 @@ class Deck:
         self._card_id_uses: dict[str, list[CardUsage]] = {}
         self._difficulty = Difficulty.A1
         self._modes = list(Mode)
-        self._assume_known = None
+        self._assume_known: Difficulty | None = None
         self._start_index = 0
         self._full_vocabulary = target_language.full_vocabulary()
         self._difficulty_map = {}
@@ -99,7 +99,7 @@ class Deck:
             for word in self._target_language.vocabulary(difficulty):
                 self._difficulty_map[word] = difficulty
 
-    def _compute_urgencies(self, current_time: float) -> dict[UrgencyState]:
+    def _compute_urgencies(self, current_time: float) -> dict[str, UrgencyState]:
         urgency_states = {}
         touched = 0
         has_reached_threshold = False
@@ -137,7 +137,7 @@ class Deck:
 
     def _choose_task(
         self,
-        urgency_states: dict[UrgencyState],
+        urgency_states: dict[str, UrgencyState],
     ) -> tuple[Mode, str]:
         target_states = []
         for unit in self._full_vocabulary:
@@ -174,10 +174,10 @@ class Deck:
     def _score_card(
         self,
         card: Card,
-        urgency_states: dict[UrgencyState],
+        urgency_states: dict[str, UrgencyState],
         current_time: float,
     ) -> float:
-        score = 0
+        score = 0.0
         timestamps = []
         for usage in self._card_id_uses.get(card.id, []):
             timestamps.append(usage.time)
@@ -245,11 +245,12 @@ class Deck:
     def set_assume_known(self, difficulty: Difficulty | None) -> None:
         self._assume_known = difficulty
         self._start_index = 0
-        if difficulty is not None:
-            for d in Difficulty:
-                self._start_index += len(self._target_language.vocabulary(d))
-                if d == difficulty:
-                    break
+        if difficulty is None:
+            return
+        for d in Difficulty:
+            self._start_index += len(self._target_language.vocabulary(d))
+            if d == difficulty:
+                break
         if self._start_index >= len(self._full_vocabulary):
             print("Cannot set minimum difficulty.")
             self._assume_known = None

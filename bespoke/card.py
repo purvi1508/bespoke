@@ -14,7 +14,7 @@
 
 """Class that represent flash cards."""
 
-import aiofiles
+import aiofiles  # type: ignore
 import asyncio
 import hashlib
 import json
@@ -58,7 +58,7 @@ class Card(pydantic.BaseModel):
         sorted_tags = list(self.unit_tags.items())
         sorted_tags.sort(key=lambda x: len(x[1]), reverse=True)
         sorted_tags.sort(key=lambda x: len(x[0]), reverse=True)
-        result = [(self.sentence, None)]
+        result: list[tuple[str, str | None]] = [(self.sentence, None)]
         for word, unit in sorted_tags:
             new_result = []
             found = False
@@ -171,7 +171,7 @@ class CardIndex:
         native = native_language.code_name
         self._index_path = CARDS_DIR / f"index_{target}_{native}.json"
         self._card_directory = CARDS_DIR / f"{target}_{native}"
-        self._index = {}
+        self._index: dict[str, list[str]] = {}
         self._card_directory.mkdir(parents=True, exist_ok=True)
 
     @classmethod

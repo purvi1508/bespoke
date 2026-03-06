@@ -30,6 +30,15 @@ GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
 ELEVENLABS_KEY = os.environ.get("ELEVENLABS_API_KEY")
 OPENAI_KEY = os.environ.get("OPENAI_API_KEY")
+if GEMINI_KEY is None:
+    raise ValueError("GEMINI_API_KEY is not set")
+if OPENROUTER_KEY is None:
+    raise ValueError("OPENROUTER_API_KEY is not set")
+if ELEVENLABS_KEY is None:
+    raise ValueError("ELEVENLABS_API_KEY is not set")
+if OPENAI_KEY is None:
+    raise ValueError("OPENAI_API_KEY is not set")
+
 LLM_CLIENTS = {
     "gemini": llm.GeminiLlmClient(GEMINI_KEY),
     "router": llm.OpenRouterElevenLabsLlmClient(OPENROUTER_KEY, ELEVENLABS_KEY),

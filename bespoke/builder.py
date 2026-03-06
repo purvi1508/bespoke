@@ -22,6 +22,7 @@ import random
 from bespoke.card import Card
 from bespoke.card import CardIndex
 from bespoke.languages import Difficulty
+from bespoke.languages import UnitTags
 from bespoke.languages import Language
 from bespoke import llm
 
@@ -33,13 +34,13 @@ class UnitTagsBuilder:
 
     def __init__(self, sentence: str, hint: list[str]) -> None:
         self.sentence = sentence
-        self.unit_tags = {}
+        self.unit_tags: UnitTags = {}
         self.hint = list(hint)
         self._no_progress_counter = 0
 
     def add_filtered(
         self,
-        new_tag_list: list[str, str],
+        new_tag_list: list[tuple[str, str]],
         vocabulary: list[str],
     ) -> None:
         old_tags = self.unit_tags
@@ -81,11 +82,11 @@ class UnitProducer:
         cards_per_unit: int,
     ) -> None:
         self._cards_per_unit = cards_per_unit
-        self._card_count = defaultdict(int)
-        self._fitting_count = defaultdict(int)
+        self._card_count: dict[str, int] = defaultdict(int)
+        self._fitting_count: dict[str, int] = defaultdict(int)
         self._units_remaining = {d: language.vocabulary(d) for d in Difficulty}
         # Lazy initialization to allow register to affect the first draw / done.
-        self._unit_pools = {}
+        self._unit_pools: dict[Difficulty, list[str]] = {}
         self._done = False
 
     def draw(self, count: int) -> tuple[list[str], Difficulty]:
@@ -106,6 +107,7 @@ class UnitProducer:
                 break
         if all(not pool for pool in self._unit_pools.values()):
             self._refill()
+        assert chosen_difficulty is not None
         return units, chosen_difficulty
 
     def register(self, unit: str, is_fitting: bool) -> None:
@@ -157,7 +159,7 @@ class SentenceProducer:
         self._llm_client = llm_client
         self._cards_per_call = cards_per_call
         self._unit_producer = UnitProducer(language, cards_per_unit)
-        self._grammar_pools = {}
+        self._grammar_pools: dict[Difficulty, list[str]] = {}
         # Data structures to quickly operate on difficulties.
         self._difficulty_order = {d: i for i, d in enumerate(Difficulty)}
         self._difficulty_map = {}
@@ -214,8 +216,8 @@ class DeckBuilder:
         self._card_index = card_index
         self._llm_client = llm_client
         self._full_vocabulary = self._language.full_vocabulary()
-        self._duplicates = set()
-        self._start_time = None
+        self._duplicates: set[str] = set()
+        self._start_time: datetime | None = None
         self._created_count = 0
 
     async def create_cards(
@@ -260,7 +262,7 @@ class DeckBuilder:
         sentence_producer: SentenceProducer,
         builder: UnitTagsBuilder,
         grammar: str,
-    ) -> Card:
+    ) -> None:
         try:
             for unit in self._full_vocabulary:
                 if unit in builder.sentence and unit not in builder.hint:
@@ -281,6 +283,7 @@ class DeckBuilder:
             sentence_producer.register_card(card)
             self._created_count += 1
             if self._created_count % 1000 == 0 or self._created_count == 100:
+                assert self._start_time is not None
                 elapsed = datetime.now() - self._start_time
                 time_string = str(elapsed).split(".")[0]
                 print(f"{self._created_count:>5} cards after : {time_string}")

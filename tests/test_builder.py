@@ -104,7 +104,7 @@ class TestDeckBuilder(unittest.IsolatedAsyncioTestCase):
         language = fakes.fake_language()
         card_index = fakes.FakeCardIndex(language)
         llm_client = fakes.FakeLlmClient()
-        deck_builder = builder.DeckBuilder(language, card_index, llm_client)
+        deck_builder = builder.DeckBuilder(language, card_index, llm_client)  # type: ignore
         vocabulary_size = len(language.full_vocabulary())
         index_size = len(await card_index.all_cards())
         self.assertEqual(index_size, vocabulary_size)

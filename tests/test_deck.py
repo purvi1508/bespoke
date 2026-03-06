@@ -26,7 +26,7 @@ class TestDeck(unittest.TestCase):
         target = languages.LANGUAGES["japanese"]
         native = languages.LANGUAGES["english"]
         index = fakes.FakeCardIndex(target, native)
-        deck = Deck(target, native, index)
+        deck = Deck(target, native, index)  # type: ignore
         deck.set_modes([Mode.LISTEN, Mode.SPEAK])
         mode, card = deck.draw()
         unit = target.vocabulary(Difficulty.A1)[0]
@@ -37,7 +37,7 @@ class TestDeck(unittest.TestCase):
         target = languages.LANGUAGES["japanese"]
         native = languages.LANGUAGES["english"]
         index = fakes.FakeCardIndex(target, native)
-        deck = Deck(target, native, index)
+        deck = Deck(target, native, index)  # type: ignore
         deck.set_modes([Mode.LISTEN, Mode.SPEAK])
         mode, card = deck.draw()
         unit = target.vocabulary(Difficulty.A1)[0]
@@ -51,7 +51,7 @@ class TestDeck(unittest.TestCase):
         target = languages.LANGUAGES["japanese"]
         native = languages.LANGUAGES["english"]
         index = fakes.FakeCardIndex(target, native)
-        deck = Deck(target, native, index)
+        deck = Deck(target, native, index)  # type: ignore
         deck.set_assume_known(Difficulty.A2)
         _mode, card = deck.draw()
         unit = target.vocabulary(Difficulty.B1)[0]

@@ -25,6 +25,7 @@ import random
 import numpy as np
 import pydantic
 import tenacity
+import typing
 from bespoke.languages import Difficulty
 from bespoke.languages import Language
 
@@ -129,6 +130,8 @@ class GeminiLlmClient(LlmClient):
                 response_modalities=["TEXT"],
             ),
         )
+        if response.text is None:
+            raise ValueError("Missing content")
         return response.text.strip()
 
     @standard_retry
@@ -150,6 +153,8 @@ class GeminiLlmClient(LlmClient):
                 response_modalities=["TEXT"],
             ),
         )
+        if response.text is None:
+            raise ValueError("Missing content")
         return response.text.strip()
 
     @standard_retry
@@ -188,6 +193,8 @@ class GeminiLlmClient(LlmClient):
                 response_modalities=["TEXT"],
             ),
         )
+        if response.text is None:
+            raise ValueError("Missing content")
         sentences = [s.strip() for s in response.text.strip().split("\n")]
         return [s for s in sentences if s]
 
@@ -233,9 +240,12 @@ class GeminiLlmClient(LlmClient):
                 response_schema=UnitTagsSchema,
             ),
         )
+        if response.parsed is None:
+            raise ValueError("Missing content")
+        parsed = typing.cast(UnitTagsSchema, response.parsed)
         return [
             (tag.occurance, tag.dictionary_entry)
-            for tag in response.parsed.occurance_vocabulary_map
+            for tag in parsed.occurance_vocabulary_map
         ]
 
     @standard_retry
@@ -273,10 +283,16 @@ class GeminiLlmClient(LlmClient):
             ),
         )
         audio_data = []
-        if response.candidates[0] is None:
+        if not response.candidates:
+            raise ValueError("Missing candidates")
+        candidate = response.candidates[0]
+        if not candidate.content or not candidate.content.parts:
             raise ValueError("Missing content")
-        for part in response.candidates[0].content.parts:
+
+        for part in candidate.content.parts:
             if part.inline_data:
+                if part.inline_data.data is None:
+                    raise ValueError("Missing inline data")
                 audio_data.append(np.frombuffer(part.inline_data.data, dtype=np.int16))
         if not audio_data:
             raise ValueError("Empty response")
@@ -353,14 +369,14 @@ class OpenRouterElevenLabsLlmClient(LlmClient):
     ) -> list[str]:
         difficulty_explanation = DIFFICULTY_EXPLANATIONS[difficulty]
         if language.name in ["Chinese", "Japanese"]:
-            spaces = "spaces or "
+            spaces = "or with spaces "
         else:
             spaces = ""
         prompt = (
             f"Create example sentences in the language {language.writing_system}. "
             f"The output should be exactly {len(units)} lines. "
             "Each line will be interpreted as a sentence. "
-            f"Don't add numbering. Don't mark words with {spaces}** etc. "
+            f"Don't add numbering. Don't mark words as bold {spaces}etc. "
             "Only respond with the sentences, no introduction or explanations. "
             "The sentences should represent how native speakers naturally talk. \n"
             f"All sentences together should use the following words: \n{units} \n"
@@ -505,14 +521,14 @@ class OpenAiLlmClient(LlmClient):
     ) -> list[str]:
         difficulty_explanation = DIFFICULTY_EXPLANATIONS[difficulty]
         if language.name in ["Chinese", "Japanese"]:
-            spaces = "spaces or "
+            spaces = "or with spaces "
         else:
             spaces = ""
         prompt = (
             f"Create example sentences in the language {language.writing_system}. "
             f"The output should be exactly {len(units)} lines. "
             "Each line will be interpreted as a sentence. "
-            f"Don't add numbering. Don't mark words with {spaces}** etc. "
+            f"Don't add numbering. Don't mark words as bold {spaces}etc. "
             "Only respond with the sentences, no introduction or explanations. "
             "The sentences should represent how native speakers naturally talk. \n"
             f"All sentences together should use the following words: \n{units} \n"
