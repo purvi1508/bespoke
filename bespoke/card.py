@@ -19,6 +19,7 @@ import asyncio
 import hashlib
 import json
 import numpy as np
+import os
 from pathlib import Path
 import pydantic
 from typing import Self
@@ -146,14 +147,15 @@ async def _write_audio_file(
     sentence: str,
     slowly: bool,
 ) -> str:
-    audio = await llm_client.speak(sentence, slowly=slowly)
     sentence_hash = hashlib.sha256(sentence.encode("utf-8")).hexdigest()
     if slowly:
         suffix = "_slow"
     else:
         suffix = ""
     filename = str(directory / f"{sentence_hash}{suffix}.ogg")
-    await _write_ogg(audio, filename)
+    if not os.path.exists(filename):
+        audio = await llm_client.speak(sentence, slowly=slowly)
+        await _write_ogg(audio, filename)
     return filename
 
 
