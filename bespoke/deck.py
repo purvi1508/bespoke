@@ -107,10 +107,10 @@ class Deck:
             if (touched + TOUCH_MARGIN) / (i + TOUCH_MARGIN) < MINIMUM_TOUCH_RATIO:
                 has_reached_threshold = True
             history = self._ratings.get(unit)
-            is_touched = i < self._start_index
-            if is_touched:
-                touched += 1
             if history is None or _is_untouched(history):
+                is_touched = i < self._start_index
+                if is_touched:
+                    touched += 1
                 urgency_states[unit] = UrgencyState(
                     is_touched=is_touched,
                     needs_introduction=False,
@@ -119,6 +119,7 @@ class Deck:
                     mode=self._modes[0],
                 )
                 continue
+            touched += 1
             highest_urgency, mode = max(
                 (compute_urgency(history, m, current_time), m) for m in self._modes
             )
