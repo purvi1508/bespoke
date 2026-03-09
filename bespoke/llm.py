@@ -40,7 +40,7 @@ DIFFICULTY_EXPLANATIONS = {
 }
 
 standard_retry = tenacity.retry(
-    stop=tenacity.stop_after_attempt(3),
+    stop=tenacity.stop_after_attempt(5),
     wait=tenacity.wait_random_exponential(multiplier=4, min=5, max=300),
 )
 
