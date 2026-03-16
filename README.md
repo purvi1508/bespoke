@@ -48,7 +48,7 @@ Run this command and a tab should open in your web browser:
 uv run learn.py --target="Japanese" --native="English" --difficulty=A1 --use_read_mode
 ```
 
-After learning your first card, your can keep learning with a simple
+After learning your first card, you can keep learning with a simple
 `uv run learn.py`, or use the full command to choose languages, difficulty and
 modes.
 
