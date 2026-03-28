@@ -604,30 +604,41 @@ class OpenAiLlmClient(LlmClient):
         *,
         slowly: bool = False,
     ) -> np.ndarray:
-        voice_name = random.choice(self.VOICES)
-        response = await self._litellm.aspeech(
-            model=self.SPEAK_MODEL,
-            voice=voice_name,
-            input=sentence,
-            api_key=self._api_key,
-        )
-        return np.frombuffer(response.content, dtype=np.int16)
+        voice_id = random.choice(self.ELEVENLABS_VOICES)
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=pcm_16000"
+        headers = {
+            "xi-api-key": self.elevenlabs_api_key,
+            "Content-Type": "application/json",
+        }
+        data = {"text": sentence, "model_id": self.ELEVENLABS_MODEL}
+        try:
+            async with self._httpx.AsyncClient() as client:
+                response = await client.post(url, headers=headers, json=data)
+                response.raise_for_status()
+                return np.frombuffer(response.content, dtype=np.int16)
+        except self._httpx.HTTPStatusError as e:
+            raise RuntimeError(f"ElevenLabs TTS failed: HTTP {e.response.status_code}") from None
 
 
 def get_llm_client() -> LlmClient:
     """Returns an LLM client based on available API keys."""
-    if api_key := os.environ.get("GEMINI_API_KEY"):
-        return GeminiLlmClient(api_key)
-    elif api_key := os.environ.get("OPENROUTER_API_KEY"):
-        elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
-        if not elevenlabs_key:
-            raise ValueError(
-                "OPENROUTER_API_KEY found but ELEVENLABS_API_KEY is missing."
-            )
-        return OpenRouterElevenLabsLlmClient(api_key, elevenlabs_key)
-    elif api_key := os.environ.get("OPENAI_API_KEY"):
-        return OpenAiLlmClient(api_key)
-    else:
+    gemini_key = os.environ.get("GEMINI_API_KEY")
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+
+    try:
+        if gemini_key:
+            return GeminiLlmClient(gemini_key)
+        elif openrouter_key:
+            if not elevenlabs_key:
+                raise ValueError("OPENROUTER_API_KEY set but ELEVENLABS_API_KEY missing.")
+            return OpenRouterElevenLabsLlmClient(openrouter_key, elevenlabs_key)
+        elif openai_key:
+            return OpenAiLlmClient(openai_key)
+        else:
+            raise ValueError("No API key found. Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY + ELEVENLABS_API_KEY.")
+    except Exception as e:
         raise ValueError(
             "No API key found. Please set GEMINI_API_KEY, "
             "OPENAI_API_KEY, or OPENROUTER_API_KEY and ELEVENLABS_API_KEY."
