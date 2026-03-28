@@ -460,8 +460,11 @@ class OpenRouterElevenLabsLlmClient(LlmClient):
                 response.raise_for_status()
                 return np.frombuffer(response.content, dtype=np.int16)
         except self._httpx.HTTPStatusError as e:
-            raise RuntimeError(f"ElevenLabs TTS failed: HTTP {e.response.status_code}") from None
-        
+            raise RuntimeError(
+                f"ElevenLabs TTS failed: HTTP {e.response.status_code}"
+            ) from None
+
+
 class OpenAiLlmClient(LlmClient):
     TEXT_MODEL = "gpt-4o-mini"
     SPEAK_MODEL = "tts-1"
@@ -611,6 +614,7 @@ class OpenAiLlmClient(LlmClient):
         return np.frombuffer(response.content, dtype=np.int16)
 
 def get_llm_client() -> LlmClient:
+    """Returns an LLM client based on available API keys."""
     gemini_key = os.environ.get("GEMINI_API_KEY")
     openrouter_key = os.environ.get("OPENROUTER_API_KEY")
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
@@ -621,12 +625,16 @@ def get_llm_client() -> LlmClient:
             return GeminiLlmClient(gemini_key)
         elif openrouter_key:
             if not elevenlabs_key:
-                raise ValueError("OPENROUTER_API_KEY set but ELEVENLABS_API_KEY missing.")
+                raise ValueError(
+                    "OPENROUTER_API_KEY set but ELEVENLABS_API_KEY missing."
+                )
             return OpenRouterElevenLabsLlmClient(openrouter_key, elevenlabs_key)
         elif openai_key:
             return OpenAiLlmClient(openai_key)
         else:
-            raise ValueError("No API key found. Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY + ELEVENLABS_API_KEY.")
+            raise ValueError(
+                "No API key found. Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY + ELEVENLABS_API_KEY."
+            )
     except Exception as e:
         raise ValueError(
             "No API key found. Please set GEMINI_API_KEY, "
