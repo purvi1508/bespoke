@@ -446,7 +446,12 @@ class OpenRouterElevenLabsLlmClient(LlmClient):
         ]
 
     @standard_retry
-    async def speak(self, sentence: str, *, slowly: bool = False) -> np.ndarray:
+    async def speak(
+        self,
+        sentence: str,
+        *,
+        slowly: bool = False,
+    ) -> np.ndarray:
         voice_id = random.choice(self.ELEVENLABS_VOICES)
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=pcm_16000"
         headers = {
