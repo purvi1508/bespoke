@@ -446,7 +446,12 @@ class OpenRouterElevenLabsLlmClient(LlmClient):
         ]
 
     @standard_retry
-    async def speak(self, sentence: str, *, slowly: bool = False) -> np.ndarray:
+    async def speak(
+        self,
+        sentence: str,
+        *,
+        slowly: bool = False,
+    ) -> np.ndarray:
         voice_id = random.choice(self.ELEVENLABS_VOICES)
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=pcm_16000"
         headers = {
@@ -612,6 +617,7 @@ class OpenAiLlmClient(LlmClient):
             api_key=self._api_key,
         )
         return np.frombuffer(response.content, dtype=np.int16)
+
 
 def get_llm_client() -> LlmClient:
     """Returns an LLM client based on available API keys."""
