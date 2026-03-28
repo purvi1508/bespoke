@@ -464,7 +464,6 @@ class OpenRouterElevenLabsLlmClient(LlmClient):
             response.raise_for_status()
             return np.frombuffer(response.content, dtype=np.int16)
 
-
 class OpenAiLlmClient(LlmClient):
     TEXT_MODEL = "gpt-4o-mini"
     SPEAK_MODEL = "tts-1"
