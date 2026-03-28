@@ -621,20 +621,19 @@ class OpenAiLlmClient(LlmClient):
 
 def get_llm_client() -> LlmClient:
     """Returns an LLM client based on available API keys."""
-    gemini_key = os.environ.get("GEMINI_API_KEY")
-    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
-    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
-    openai_key = os.environ.get("OPENAI_API_KEY")
-
-    if gemini_key:
-        return GeminiLlmClient(gemini_key)
-    elif openrouter_key:
+    if api_key := os.environ.get("GEMINI_API_KEY"):
+        return GeminiLlmClient(api_key)
+    elif api_key := os.environ.get("OPENROUTER_API_KEY"):
+        elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
         if not elevenlabs_key:
-            raise ValueError("OPENROUTER_API_KEY set but ELEVENLABS_API_KEY missing.")
-        return OpenRouterElevenLabsLlmClient(openrouter_key, elevenlabs_key)
-    elif openai_key:
-        return OpenAiLlmClient(openai_key)
+            raise ValueError(
+                "OPENROUTER_API_KEY found but ELEVENLABS_API_KEY is missing."
+            )
+        return OpenRouterElevenLabsLlmClient(api_key, elevenlabs_key)
+    elif api_key := os.environ.get("OPENAI_API_KEY"):
+        return OpenAiLlmClient(api_key)
     else:
         raise ValueError(
-            "No API key found. Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY + ELEVENLABS_API_KEY."
+            "No API key found. Please set GEMINI_API_KEY, "
+            "OPENAI_API_KEY, or OPENROUTER_API_KEY and ELEVENLABS_API_KEY."
         )
